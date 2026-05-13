@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itheima.mapper.LogMapper">
+
+    <!--
+      分页查询操作日志
+      知识点:
+        传统 LIMIT 分页: LIMIT #{start}, #{pageSize}
+        start: 偏移量 (从0开始), 计算方式: (page - 1) * pageSize
+        别名映射: operate_time as operateTime, info as methodParams
+          用于将下划线数据库字段映射到 Java 驼峰属性名
+          注意: 此处 info 别名 methodParams 与 Log 实体属性名对应
+    -->
+    <select id="page" resultType="com.itheima.pojo.Log">
+        select id, operate_time as operateTime, info as methodParams from emp_log order by operate_time desc limit #{start}, #{pageSize}
+    </select>
+
+    <!--
+      查询日志总记录数
+      知识点:
+        COUNT(*) 聚合函数: 统计日志总条数
+        返回 Long 类型: 用于 PageBean.total 字段
+        与 page 查询配合: 前端根据 total 和 pageSize 计算总页数
+    -->
+    <select id="count" resultType="java.lang.Long">
+        select count(*) from emp_log
+    </select>
+
+</mapper>

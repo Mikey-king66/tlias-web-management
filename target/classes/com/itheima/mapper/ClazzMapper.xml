@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itheima.mapper.ClazzMapper">
+
+    <!--
+      条件分页查询班级列表, 联表查询班主任姓名
+      知识点:
+        LEFT JOIN: 左外连接 emp 表, 即使班主任ID为空也能查出班级信息
+        别名 e.name as masterName: 与 Clazz 实体的 masterName 属性对应
+        where 标签: 自动根据条件是否成立动态生成 where 关键字, 并自动去除第一条条件前多余的 and/or
+        if 标签: test 属性为条件表达式, true 时拼接内部 SQL 片段
+        concat 函数: MySQL 字符串拼接, 实现模糊查询
+        PageHelper 会自动拦截此 SQL 追加 limit 分页
+    -->
+    <select id="list" resultType="com.itheima.pojo.Clazz">
+        select c.*, e.name as masterName
+        from clazz c left join emp e on c.master_id = e.id
+        <where>
+            <if test="name != null and name != ''">
+                c.name like concat('%', #{name}, '%')
+            </if>
+            <if test="begin != null and end != null">
+                and c.end_date between #{begin} and #{end}
+            </if>
+        </where>
+        order by c.update_time desc
+    </select>
+
+    <!--
+      根据ID查询班级详情 (联表查询班主任姓名)
+      知识点:
+        左外连接 LEFT JOIN: 即使班主任ID为空也能查出班级信息
+        结果映射: 利用 mybatis.map-underscore-to-camel-case=true 自动将下划线列名转驼峰属性
+    -->
+    <select id="getById" resultType="com.itheima.pojo.Clazz">
+        select c.*, e.name as masterName
+        from clazz c left join emp e on c.master_id = e.id
+        where c.id = #{id}
+    </select>
+
+    <!--
+      动态更新班级信息
+      知识点:
+        set 标签:
+          1. 生成 set 关键字
+          2. 自动去除更新字段之后多余的逗号
+        if 标签: 条件成立才拼接, 实现按需更新 (只更新传递的非空字段)
+    -->
+    <update id="update">
+        update clazz
+        <set>
+            <if test="name != null and name != ''">name = #{name},</if>
+            <if test="room != null and room != ''">room = #{room},</if>
+            <if test="beginDate != null">begin_date = #{beginDate},</if>
+            <if test="endDate != null">end_date = #{endDate},</if>
+            <if test="masterId != null">master_id = #{masterId},</if>
+            <if test="subject != null">subject = #{subject},</if>
+            <if test="updateTime != null">update_time = #{updateTime}</if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <!--
+      根据ID删除班级
+      知识点: 按主键删除单条记录
+    -->
+    <delete id="deleteById">
+        delete from clazz where id = #{id}
+    </delete>
+
+    <!--
+      统计某班级下的学员人数 (用于删除前校验)
+      知识点:
+        COUNT(*) 聚合函数统计学员数量
+        返回值 int 可直接用于判断: 若大于0则不允许删除 (业务层校验)
+    -->
+    <select id="countStudentsByClazzId" resultType="int">
+        select count(*) from student where clazz_id = #{clazzId}
+    </select>
+
+</mapper>

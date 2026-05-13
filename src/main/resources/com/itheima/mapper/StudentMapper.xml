@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itheima.mapper.StudentMapper">
+
+    <!--
+      条件分页查询学员列表, 联表查询班级名称
+      知识点:
+        LEFT JOIN clazz: 获取学员所属班级名称
+        别名 c.name as clazzName: 与 Student 实体的 clazzName 属性对应
+        where 标签: 动态生成 where, 自动处理多余的 and/or
+        if 标签: test 条件成立才拼接 SQL 片段
+        concat + like: MySQL 模糊匹配
+    -->
+    <select id="list" resultType="com.itheima.pojo.Student">
+        select s.*, c.name as clazzName
+        from student s left join clazz c on s.clazz_id = c.id
+        <where>
+            <if test="name != null and name != ''">
+                s.name like concat('%', #{name}, '%')
+            </if>
+            <if test="degree != null">
+                and s.degree = #{degree}
+            </if>
+            <if test="clazzId != null">
+                and s.clazz_id = #{clazzId}
+            </if>
+        </where>
+        order by s.update_time desc
+    </select>
+
+    <!--
+      根据ID查询学员详情 (联表查询班级名称)
+      知识点: 别名映射 —— c.name as clazzName, as 后面的别名与 POJO 属性名一致即可自动映射
+    -->
+    <select id="getById" resultType="com.itheima.pojo.Student">
+        select s.*, c.name as clazzName
+        from student s left join clazz c on s.clazz_id = c.id
+        where s.id = #{id}
+    </select>
+
+    <!--
+      动态更新学员信息
+      知识点:
+        set 标签: 生成 set 关键字并自动去除末尾逗号
+        if 标签: 按需更新, 只更新前端传递的非空字段
+    -->
+    <update id="update">
+        update student
+        <set>
+            <if test="name != null and name != ''">name = #{name},</if>
+            <if test="no != null and no != ''">no = #{no},</if>
+            <if test="gender != null">gender = #{gender},</if>
+            <if test="phone != null and phone != ''">phone = #{phone},</if>
+            <if test="idCard != null and idCard != ''">id_card = #{idCard},</if>
+            <if test="isCollege != null">is_college = #{isCollege},</if>
+            <if test="address != null">address = #{address},</if>
+            <if test="degree != null">degree = #{degree},</if>
+            <if test="graduationDate != null">graduation_date = #{graduationDate},</if>
+            <if test="clazzId != null">clazz_id = #{clazzId},</if>
+            <if test="violationCount != null">violation_count = #{violationCount},</if>
+            <if test="violationScore != null">violation_score = #{violationScore},</if>
+            <if test="updateTime != null">update_time = #{updateTime}</if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <!--
+      批量删除学员
+      知识点:
+        foreach 标签: 遍历集合生成 in (...) 子句
+          collection: 遍历的集合参数名
+          item: 每次遍历的元素别名
+          open: 循环开始前拼接的 SQL (左括号)
+          close: 循环结束后拼接的 SQL (右括号)
+          separator: 每次循环之间的分隔符 (逗号)
+    -->
+    <delete id="deleteByIds">
+        delete from student where id in
+        <foreach collection="ids" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </delete>
+
+    <!--
+      违纪处理: 扣分并增加违纪次数
+      知识点:
+        SQL 中直接做数值运算: violation_count + 1, violation_score + #{score}
+        优势: 数据库层面原子更新, 避免并发问题 (无需先查后改)
+        update_time = now(): refreshing update time using MySQL built-in function
+    -->
+    <update id="updateViolation">
+        update student
+        set violation_count = violation_count + 1,
+            violation_score = violation_score + #{score},
+            update_time = now()
+        where id = #{id}
+    </update>
+
+    <!--
+      统计学员学历分布 (用于报表)
+      知识点:
+        CASE WHEN: SQL 条件表达式, 将数字编码转为可读学历名称
+        GROUP BY degree, COUNT(*): 按学历分组统计各学历人数
+        ORDER BY degree: 按学历编码排序
+    -->
+    <select id="countStudentDegreeData" resultType="java.util.Map">
+        select
+            case degree
+                when 1 then '初中'
+                when 2 then '高中'
+                when 3 then '大专'
+                when 4 then '本科'
+                when 5 then '硕士'
+                when 6 then '博士'
+                else '其他'
+            end as name,
+            count(*) as value
+        from student
+        group by degree
+        order by degree
+    </select>
+
+    <!--
+      统计每个班级的学员人数 (用于报表)
+      知识点:
+        LEFT JOIN: 包含没有学员的班级 (人数为0)
+        COUNT(s.id): 统计学员数, 使用 s.id 而非 * 可以正确统计 NULL 情况
+        GROUP BY c.id, c.name: 按班级分组统计
+        ORDER BY value desc: 按人数降序排列
+    -->
+    <select id="countStudentCountData" resultType="java.util.Map">
+        select
+            c.name as name,
+            count(s.id) as value
+        from clazz c left join student s on c.id = s.clazz_id
+        group by c.id, c.name
+        order by value desc
+    </select>
+
+</mapper>
