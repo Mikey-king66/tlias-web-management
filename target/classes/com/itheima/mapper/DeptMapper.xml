@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itheima.mapper.DeptMapper">
+
+   <!-- if 的test属性: 条件表达式 , true: 则拼接内部的SQL片段; false: 不拼接-->
+   <!-- set 标签:
+        1. 生成set关键字
+        2. 会自动的去除更新字段之后多余的 逗号 (,)-->
+    <update id="update">
+        update dept
+        <set>
+            <if test="name != null and name != ''">
+                name = #{name} ,
+            </if>
+
+            <if test="updateTime != null">
+                update_time = #{updateTime}
+            </if>
+        </set>
+         where id = #{id}
+    </update>
+
+</mapper>

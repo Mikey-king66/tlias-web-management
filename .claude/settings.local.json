@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(python -m pip install python-docx -q; python -c \"import docx; print\\('OK'\\)\")",
+      "PowerShell(Get-Command *)",
+      "PowerShell(node \"C:\\\\Program Files\\\\nodejs\\\\node_modules\\\\npm\\\\bin\\\\npm-cli.js\" install docx --prefix \"D:\\\\Desktop\\\\项目分析\" 2>&1)",
+      "PowerShell($word = New-Object -ComObject Word.Application; $word.Visible = $false; Write-Host \"Word COM available\")",
+      "PowerShell(cmd /c \"node D:\\\\Desktop\\\\项目分析\\\\generate_docx.js\")",
+      "PowerShell($file = Get-Item \"D:\\\\Desktop\\\\项目分析\\\\tlias-web-management分析报告.docx\"; Write-Host \"File: $\\($file.Name\\)\"; Write-Host \"Size: $\\([math]::Round\\($file.Length/1KB, 1\\)\\) KB\"; Write-Host \"LastWriteTime: $\\($file.LastWriteTime\\)\")"
+    ]
+  }
+}
